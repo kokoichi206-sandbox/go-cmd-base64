@@ -5,6 +5,8 @@ import (
 	"io/ioutil"
 	"os"
 	"strings"
+
+	flag "github.com/spf13/pflag"
 )
 
 const (
@@ -12,13 +14,45 @@ const (
 	padding  = "="
 )
 
+// Print usage
+var Usage = func() {
+	fmt.Println("Usage:  base64 [-h] <file_name>")
+	flag.PrintDefaults()
+}
+
+// Options
+type Params struct {
+	IsHelp bool
+	Args   []string
+}
+
+func init() {
+	flag.BoolVarP(&params.IsHelp, "help", "h", false, "display this message")
+
+	flag.Parse()
+
+	params.Args = flag.Args()
+}
+
+var params Params
+
 func main() {
-	fileName := "test.txt"
-	Encode(fileName)
+	if params.IsHelp {
+		Usage()
+		os.Exit(0)
+	}
+
+	if len(params.Args) == 0 {
+		fmt.Println("no filename was passed")
+		Usage()
+		os.Exit(1)
+	}
+
+	fmt.Println(Encode(params.Args[0]))
 }
 
 // 指定されたファイルの中身をエンコードする。
-func Encode(fileName string) {
+func Encode(fileName string) string {
 	buf, err := ioutil.ReadFile(fileName)
 	if err != nil {
 		fmt.Printf("Unable to open '%s': No such file or directory", fileName)
@@ -65,7 +99,7 @@ func Encode(fileName string) {
 		}
 	}
 
-	fmt.Println(builder.String())
+	return builder.String()
 }
 
 // encode from 3 bytes binary data to 4 strings
