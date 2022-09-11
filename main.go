@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -9,25 +10,22 @@ import (
 	flag "github.com/spf13/pflag"
 )
 
-const (
-	alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
-	padding  = "="
-)
-
 // Print usage
 var Usage = func() {
-	fmt.Println("Usage:  base64 [-h] <file_name>")
+	fmt.Println("Usage:  base64 [-hd] <file_name>")
 	flag.PrintDefaults()
 }
 
 // Options
 type Params struct {
-	IsHelp bool
-	Args   []string
+	IsHelp   bool
+	IsDecode bool
+	Args     []string
 }
 
 func init() {
 	flag.BoolVarP(&params.IsHelp, "help", "h", false, "display this message")
+	flag.BoolVarP(&params.IsDecode, "decode", "d", false, "decodes input")
 
 	flag.Parse()
 
@@ -48,7 +46,11 @@ func main() {
 		os.Exit(1)
 	}
 
-	fmt.Println(Encode(params.Args[0]))
+	if params.IsDecode {
+		fmt.Print(Decode(params.Args[0]))
+	} else {
+		fmt.Println(Encode(params.Args[0]))
+	}
 }
 
 // 指定されたファイルの中身をエンコードする。
@@ -65,17 +67,14 @@ func Encode(fileName string) string {
 		max += 1
 	}
 
-	cnt := 0
 	// 最終行以外をエンコード。
 	for i := 0; i < max-1; i++ {
 		b := buf[3*i : 3*i+3]
-		// fmt.Println(b)
 
 		if e := encode3bytes(b, 3, &builder); e != nil {
 			fmt.Println("unexpected error occured while encoding")
 			os.Exit(1)
 		}
-		cnt += 1
 	}
 	// 最終行をエンコード。
 	switch len(buf) % 3 {
@@ -122,4 +121,31 @@ func encode3bytes(bytes []byte, v int, builder *strings.Builder) error {
 		}
 	}
 	return nil
+}
+
+// 指定されたファイルの中身をデコードする。
+func Decode(fileName string) string {
+	buf, err := ioutil.ReadFile(fileName)
+	if err != nil {
+		fmt.Printf("Unable to open '%s': No such file or directory", fileName)
+		os.Exit(1)
+	}
+
+	sb := string(buf)
+	max := len(sb) / 4
+
+	var res bytes.Buffer
+	// 最終行以外をエンコード。
+	for i := 0; i < max; i++ {
+		b := sb[4*i : 4*i+4]
+
+		data := alphabetMap[string(b[3])] + alphabetMap[string(b[2])]*64 + alphabetMap[string(b[1])]*64*64 + alphabetMap[string(b[0])]*64*64*64
+
+		b1 := data / (256 * 256)
+		b2 := (data % (256 * 256)) / 256
+		b3 := data % 256
+		res.Write([]byte{byte(b1), byte(b2), byte(b3)})
+	}
+
+	return res.String()
 }
