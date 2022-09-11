@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
 	"io/ioutil"
@@ -40,26 +41,47 @@ func main() {
 		os.Exit(0)
 	}
 
-	if len(params.Args) == 0 {
-		fmt.Println("no filename was passed")
+	var buf []byte
+	if len(params.Args) != 0 {
+		// 引数にファイル名が渡された場合。
+		buf = readFile(params.Args[0])
+	} else {
+		// なければ、標準入力を待ち受ける。
+		buf = readStandardInput()
+	}
+
+	if len(buf) == 0 {
+		fmt.Println("no input was passed")
 		Usage()
 		os.Exit(1)
 	}
 
 	if params.IsDecode {
-		fmt.Print(Decode(params.Args[0]))
+		fmt.Print(Decode(buf))
 	} else {
-		fmt.Println(Encode(params.Args[0]))
+		fmt.Println(Encode(buf))
 	}
 }
 
-// 指定されたファイルの中身をエンコードする。
-func Encode(fileName string) string {
+func readFile(fileName string) []byte {
 	buf, err := ioutil.ReadFile(fileName)
 	if err != nil {
 		fmt.Printf("Unable to open '%s': No such file or directory", fileName)
 		os.Exit(1)
 	}
+	return buf
+}
+
+func readStandardInput() []byte {
+	scanner := bufio.NewScanner(os.Stdin)
+	// 1行分スキャン
+	scanner.Scan()
+	return scanner.Bytes()
+}
+
+// 渡されたバイト列をエンコードする。
+func Encode(buf []byte) string {
+
 	var builder strings.Builder
 
 	max := len(buf) / 3
@@ -123,13 +145,8 @@ func encode3bytes(bytes []byte, v int, builder *strings.Builder) error {
 	return nil
 }
 
-// 指定されたファイルの中身をデコードする。
-func Decode(fileName string) string {
-	buf, err := ioutil.ReadFile(fileName)
-	if err != nil {
-		fmt.Printf("Unable to open '%s': No such file or directory", fileName)
-		os.Exit(1)
-	}
+// 渡されたバイト列ををデコードする。
+func Decode(buf []byte) string {
 
 	sb := string(buf)
 	max := len(sb) / 4

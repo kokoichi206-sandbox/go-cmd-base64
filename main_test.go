@@ -2,6 +2,7 @@ package main_test
 
 import (
 	main "base64"
+	"io/ioutil"
 	"os/exec"
 	"testing"
 
@@ -21,9 +22,12 @@ func TestEncode(t *testing.T) {
 		require.NoError(t, err)
 		// Without newline
 		expected := string(data[:len(data)-1])
+		// Encode の引数に渡すために、ファイルを読み込みバイト列にする。
+		buf, err := ioutil.ReadFile(fileName)
+		require.NoError(t, err)
 
 		// Act
-		result := main.Encode(fileName)
+		result := main.Encode(buf)
 
 		// Assert
 		require.Equal(t, expected, result)
