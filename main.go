@@ -153,7 +153,7 @@ func Decode(buf []byte) string {
 
 	var res bytes.Buffer
 	// 最終行以外をエンコード。
-	for i := 0; i < max; i++ {
+	for i := 0; i < max-1; i++ {
 		b := sb[4*i : 4*i+4]
 
 		data := alphabetMap[string(b[3])] + alphabetMap[string(b[2])]*64 + alphabetMap[string(b[1])]*64*64 + alphabetMap[string(b[0])]*64*64*64
@@ -161,6 +161,19 @@ func Decode(buf []byte) string {
 		b1 := data / (256 * 256)
 		b2 := (data % (256 * 256)) / 256
 		b3 := data % 256
+		res.Write([]byte{byte(b1), byte(b2), byte(b3)})
+	}
+
+	b := sb[4*(max-1) : 4*max]
+	data := alphabetMap[string(b[3])] + alphabetMap[string(b[2])]*64 + alphabetMap[string(b[1])]*64*64 + alphabetMap[string(b[0])]*64*64*64
+	b1 := data / (256 * 256)
+	b2 := (data % (256 * 256)) / 256
+	b3 := data % 256
+	if b2 == 0 {
+		res.Write([]byte{byte(b1)})
+	} else if b3 == 0 {
+		res.Write([]byte{byte(b1), byte(b2)})
+	} else {
 		res.Write([]byte{byte(b1), byte(b2), byte(b3)})
 	}
 
